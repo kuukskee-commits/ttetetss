@@ -16,6 +16,9 @@ app.listen(PORT, () => {
     console.log(`🌍 Web server running on port ${PORT}`);
 });
 
+client.on("error", console.error);
+process.on("unhandledRejection", console.error);
+
 
 // =========================
 // DISCORD SETUP
@@ -221,6 +224,10 @@ ${reason}`
 // =========================
 // LOGIN
 // =========================
-client.login(process.env.DISCORD_TOKEN);
-
-
+client.login(process.env.TOKEN)
+  .then(() => {
+    console.log("🔥 Discord login succesvol");
+  })
+  .catch((err) => {
+    console.error("❌ Discord login fout:", err);
+  });

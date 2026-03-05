@@ -1,5 +1,25 @@
 require("dotenv").config();
 
+// =========================
+// EXPRESS SERVER (VERPLICHT VOOR RENDER)
+// =========================
+const express = require("express");
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+    res.send("Bot is running");
+});
+
+app.listen(PORT, () => {
+    console.log(`🌍 Web server running on port ${PORT}`);
+});
+
+
+// =========================
+// DISCORD SETUP
+// =========================
 const {
     Client,
     GatewayIntentBits,
@@ -21,9 +41,8 @@ const client = new Client({
 
 
 // =========================
-// SLASH COMMAND REGISTRATIE (AUTO BIJ START)
+// SLASH COMMANDS
 // =========================
-
 const commands = [
     new SlashCommandBuilder()
         .setName("ban")
@@ -56,35 +75,39 @@ const commands = [
 ].map(cmd => cmd.toJSON());
 
 
-client.once("clientReady", async () => {
+// =========================
+// READY EVENT
+// =========================
+client.once("ready", async () => {
     console.log(`✅ Online als ${client.user.tag}`);
 
     const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
-    await rest.put(
-        Routes.applicationGuildCommands(
-            process.env.CLIENT_ID,
-            process.env.GUILD_ID
-        ),
-        { body: commands }
-    );
+    try {
+        await rest.put(
+            Routes.applicationGuildCommands(
+                process.env.CLIENT_ID,
+                process.env.GUILD_ID
+            ),
+            { body: commands }
+        );
 
-    console.log("✅ Slash commands geregistreerd.");
+        console.log("✅ Slash commands geregistreerd.");
+    } catch (error) {
+        console.error("❌ Fout bij slash registratie:", error);
+    }
 });
 
 
 // =========================
 // INTERACTIONS
 // =========================
-
 client.on("interactionCreate", async (interaction) => {
 
     if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu()) return;
 
 
-    // =========================
-    // BAN
-    // =========================
+    // ================= BAN =================
     if (interaction.isChatInputCommand() && interaction.commandName === "ban") {
 
         if (!interaction.memberPermissions.has(PermissionsBitField.Flags.BanMembers))
@@ -94,50 +117,23 @@ client.on("interactionCreate", async (interaction) => {
         const reason = interaction.options.getString("reden") || "Geen reden opgegeven.";
 
         const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-        if (!member) return interaction.reply({ content: "❌ User niet gevonden.", ephemeral: true });
+        if (!member)
+            return interaction.reply({ content: "❌ User niet gevonden.", ephemeral: true });
+
         if (!member.bannable)
             return interaction.reply({ content: "❌ Ik kan deze persoon niet bannen.", ephemeral: true });
 
-        // 💎 DONATIE EMBED
-const embed = new EmbedBuilder()
-    .setColor("#FF0000")
-    .setTitle("🚫 Je bent geband")
-    .setDescription(
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("🚫 Je bent geband")
+            .setDescription(
 `Je bent permanent verwijderd uit **${interaction.guild.name}**.
 
 📌 **Reden:**  
-${reason}
-
----
-
-💰 **Unban aanvraag**
-
-Wil je opnieuw toegang tot de server krijgen?
-
-Je kan een *unban-aanvraag* indienen via een administratieve heractivatie.
-
-🔹 Kost: **€30**
-🔹 Betaling via PayPal
-🔹 Vermeld je Discord naam in de betaling
-
-Na betaling wordt je aanvraag handmatig gecontroleerd door het staff team.
-
----
-
-💳 **PayPal link**
-https://paypal.me/JOUW_LINK_HIER
-
----
-
-⚠️ Let op:
-- Geen refunds
-- Misbruik leidt tot permanente blacklist
-- Dit garandeert geen automatische goedkeuring
-
-Contacteer staff na betaling met een bewijs van transactie.`
-    )
-    .setFooter({ text: "Server Administration • Appeal System" })
-    .setTimestamp();
+${reason}`
+            )
+            .setFooter({ text: "Server Administration" })
+            .setTimestamp();
 
         try {
             await user.send({ embeds: [embed] });
@@ -149,9 +145,7 @@ Contacteer staff na betaling met een bewijs van transactie.`
     }
 
 
-    // =========================
-    // KICK
-    // =========================
+    // ================= KICK =================
     if (interaction.isChatInputCommand() && interaction.commandName === "kick") {
 
         if (!interaction.memberPermissions.has(PermissionsBitField.Flags.KickMembers))
@@ -161,7 +155,9 @@ Contacteer staff na betaling met een bewijs van transactie.`
         const reason = interaction.options.getString("reden") || "Geen reden opgegeven.";
 
         const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-        if (!member) return interaction.reply({ content: "❌ User niet gevonden.", ephemeral: true });
+        if (!member)
+            return interaction.reply({ content: "❌ User niet gevonden.", ephemeral: true });
+
         if (!member.kickable)
             return interaction.reply({ content: "❌ Ik kan deze persoon niet kicken.", ephemeral: true });
 
@@ -175,9 +171,7 @@ Contacteer staff na betaling met een bewijs van transactie.`
     }
 
 
-    // =========================
-    // UNBAN COMMAND
-    // =========================
+    // ================= UNBAN COMMAND =================
     if (interaction.isChatInputCommand() && interaction.commandName === "unban") {
 
         if (!interaction.memberPermissions.has(PermissionsBitField.Flags.BanMembers))
@@ -208,9 +202,7 @@ Contacteer staff na betaling met een bewijs van transactie.`
     }
 
 
-    // =========================
-    // UNBAN SELECT MENU
-    // =========================
+    // ================= UNBAN SELECT =================
     if (interaction.isStringSelectMenu() && interaction.customId === "unban_select") {
 
         const userId = interaction.values[0];
@@ -226,4 +218,7 @@ Contacteer staff na betaling met een bewijs van transactie.`
 });
 
 
+// =========================
+// LOGIN
+// =========================
 client.login(process.env.TOKEN);

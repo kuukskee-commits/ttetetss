@@ -16,9 +16,6 @@ app.listen(PORT, () => {
     console.log(`🌍 Web server running on port ${PORT}`);
 });
 
-client.on("error", console.error);
-process.on("unhandledRejection", console.error);
-
 
 // =========================
 // DISCORD SETUP
@@ -41,6 +38,10 @@ const client = new Client({
         GatewayIntentBits.GuildMembers
     ]
 });
+
+// 🔥 Error logging NA client initialization
+client.on("error", console.error);
+process.on("unhandledRejection", console.error);
 
 
 // =========================
@@ -84,7 +85,7 @@ const commands = [
 client.once("ready", async () => {
     console.log(`✅ Online als ${client.user.tag}`);
 
-const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
+    const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
 
     try {
         await rest.put(
@@ -109,7 +110,6 @@ client.on("interactionCreate", async (interaction) => {
 
     if (!interaction.isChatInputCommand() && !interaction.isStringSelectMenu()) return;
 
-
     // ================= BAN =================
     if (interaction.isChatInputCommand() && interaction.commandName === "ban") {
 
@@ -126,27 +126,9 @@ client.on("interactionCreate", async (interaction) => {
         if (!member.bannable)
             return interaction.reply({ content: "❌ Ik kan deze persoon niet bannen.", ephemeral: true });
 
-        const embed = new EmbedBuilder()
-            .setColor("#FF0000")
-            .setTitle("🚫 Je bent geband")
-            .setDescription(
-`Je bent permanent verwijderd uit **${interaction.guild.name}**.
-
-📌 **Reden:**  
-${reason}`
-            )
-            .setFooter({ text: "Server Administration" })
-            .setTimestamp();
-
-        try {
-            await user.send({ embeds: [embed] });
-        } catch {}
-
         await member.ban({ reason });
-
         await interaction.reply(`🔨 ${user.tag} is geband.`);
     }
-
 
     // ================= KICK =================
     if (interaction.isChatInputCommand() && interaction.commandName === "kick") {
@@ -164,17 +146,11 @@ ${reason}`
         if (!member.kickable)
             return interaction.reply({ content: "❌ Ik kan deze persoon niet kicken.", ephemeral: true });
 
-        try {
-            await user.send(`👢 Je bent gekickt uit ${interaction.guild.name}\nReden: ${reason}`);
-        } catch {}
-
         await member.kick(reason);
-
         await interaction.reply(`👢 ${user.tag} is gekickt.`);
     }
 
-
-    // ================= UNBAN COMMAND =================
+    // ================= UNBAN =================
     if (interaction.isChatInputCommand() && interaction.commandName === "unban") {
 
         if (!interaction.memberPermissions.has(PermissionsBitField.Flags.BanMembers))
@@ -204,8 +180,6 @@ ${reason}`
         });
     }
 
-
-    // ================= UNBAN SELECT =================
     if (interaction.isStringSelectMenu() && interaction.customId === "unban_select") {
 
         const userId = interaction.values[0];
@@ -217,17 +191,16 @@ ${reason}`
             components: []
         });
     }
-
 });
 
 
 // =========================
 // LOGIN
 // =========================
-client.login(process.env.TOKEN)
-  .then(() => {
-    console.log("🔥 Discord login succesvol");
-  })
-  .catch((err) => {
-    console.error("❌ Discord login fout:", err);
-  });
+client.login(process.env.DISCORD_TOKEN)
+    .then(() => {
+        console.log("🔥 Discord login succesvol");
+    })
+    .catch((err) => {
+        console.error("❌ Discord login fout:", err);
+    });
